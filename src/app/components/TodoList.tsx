@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { DragDropContext, Droppable, Draggable, DropResult, DroppableProps, DroppableProvided } from "react-beautiful-dnd";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+  DroppableProps,
+  DroppableProvided,
+} from "react-beautiful-dnd";
 import Todo from "./Todo";
 
 interface TodoItem {
@@ -112,32 +119,59 @@ export default function TodoList() {
     setTodos(todos.filter((todo) => todo.id !== id));
   };
 
+  // const handleDragEnd = (result: DropResult) => {
+  //   if (!result.destination) return;
+
+  //   const { source, destination } = result;
+  //   console.log(object);
+  //   // Only handle reordering within the same list (active or completed)
+
+  // };
   const handleDragEnd = (result: DropResult) => {
+    // If there's no destination (dropped outside the list), do nothing
     if (!result.destination) return;
-
+  
     const { source, destination } = result;
-    const allTodos = [...todos];
-    const sourceList = result.source.droppableId === "completed" 
-      ? allTodos.filter(t => t.completed) 
-      : allTodos.filter(t => !t.completed);
     
-    const [movedItem] = sourceList.splice(source.index, 1);
-    
-    if (result.source.droppableId === result.destination.droppableId) {
-      sourceList.splice(destination.index, 0, movedItem);
-      const updatedTodos = allTodos.map(todo => {
-        if (result.source.droppableId === "completed" ? todo.completed : !todo.completed) {
-          const index = sourceList.findIndex(t => t.id === todo.id);
-          return { ...todo, order: index };
-        }
-        return todo;
-      });
-      setTodos(updatedTodos);
+    // If the item was dropped in the same position, do nothing
+    if (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    ) {
+      return;
     }
+  
+    console.log("result", result, todos);
+    
+    // Create a copy of the current todos array
+    const updatedTodos = Array.from(todos);
+    
+    // Remove the dragged item from the array
+    const [movedItem] = updatedTodos.splice(source.index, 1);
+    
+    // Insert the dragged item at the new position
+    updatedTodos.splice(destination.index, 0, movedItem);
+    
+    // Update the order property for all items
+    const reorderedTodos = updatedTodos.map((todo, index) => ({
+      ...todo,
+      order: index
+    }));
+    
+    // Update state with the new order
+    setTodos(reorderedTodos);
+    
+    // Optional: Save to localStorage or send to backend API
+    // saveTodos(reorderedTodos);
   };
+  
 
-  const activeTodos = todos.filter(todo => !todo.completed).sort((a, b) => (a.order || 0) - (b.order || 0));
-  const completedTodos = todos.filter(todo => todo.completed).sort((a, b) => (a.order || 0) - (b.order || 0));
+  const activeTodos = todos
+    .filter((todo) => !todo.completed)
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
+  const completedTodos = todos
+    .filter((todo) => todo.completed)
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
 
   if (!mounted) {
     return (
@@ -175,7 +209,7 @@ export default function TodoList() {
                         {...provided.draggableProps}
                         style={{
                           ...provided.draggableProps.style,
-                          opacity: snapshot.isDragging ? 0.8 : 1
+                          opacity: snapshot.isDragging ? 0.8 : 1,
                         }}
                       >
                         <div {...provided.dragHandleProps}>
@@ -212,14 +246,18 @@ export default function TodoList() {
                     className="flex flex-col gap-4"
                   >
                     {completedTodos.map((todo, index) => (
-                      <Draggable key={todo.id} draggableId={todo.id} index={index}>
+                      <Draggable
+                        key={todo.id}
+                        draggableId={todo.id}
+                        index={index}
+                      >
                         {(provided, snapshot) => (
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             style={{
                               ...provided.draggableProps.style,
-                              opacity: snapshot.isDragging ? 0.8 : 1
+                              opacity: snapshot.isDragging ? 0.8 : 1,
                             }}
                           >
                             <div {...provided.dragHandleProps}>
