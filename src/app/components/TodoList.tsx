@@ -569,7 +569,7 @@ export default function TodoList() {
                           e.preventDefault();
                           handleEditTopic(topic.id, editingTopicTitle);
                         }}
-                        className="flex gap-1 w-full min-w-[200px]"
+                        className="flex gap-1 w-full"
                       >
                         <input
                           type="text"
@@ -586,12 +586,8 @@ export default function TodoList() {
                         />
                         <div className="flex gap-1 shrink-0">
                           <button
-                            type="button"
-                            onClick={() => {
-                              setEditingTopicId(null);
-                              setEditingTopicTitle("");
-                            }}
-                            className="px-2 py-1 bg-[#F3EFEE] text-[#D1A28B] text-xs font-semibold tracking-[0.04em] uppercase rounded whitespace-nowrap"
+                            type="submit"
+                            className="px-2 py-1 bg-[#D1A28B] text-white text-xs font-semibold tracking-[0.04em] uppercase rounded whitespace-nowrap"
                           >
                             <svg
                               width="14"
@@ -601,14 +597,7 @@ export default function TodoList() {
                               xmlns="http://www.w3.org/2000/svg"
                             >
                               <path
-                                d="M18 6L6 18"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                              <path
-                                d="M6 6L18 18"
+                                d="M5 12L10 17L20 7"
                                 stroke="currentColor"
                                 strokeWidth="2"
                                 strokeLinecap="round"
@@ -616,6 +605,7 @@ export default function TodoList() {
                               />
                             </svg>
                           </button>
+                          
                         </div>
                       </form>
                     </div>
