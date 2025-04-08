@@ -1,15 +1,32 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { DragDropContext, Droppable, Draggable, DropResult, DroppableProps, DroppableProvided } from "react-beautiful-dnd";
 import Todo from "./Todo";
 
 interface TodoItem {
   id: string;
   text: string;
   completed: boolean;
+  order?: number;
 }
 
 const STORAGE_KEY = "todos-v1";
+
+function StrictModeDroppable({ children, ...props }: DroppableProps) {
+  const [enabled, setEnabled] = useState(false);
+  useEffect(() => {
+    const animation = requestAnimationFrame(() => setEnabled(true));
+    return () => {
+      cancelAnimationFrame(animation);
+      setEnabled(false);
+    };
+  }, []);
+  if (!enabled) {
+    return null;
+  }
+  return <Droppable {...props}>{children}</Droppable>;
+}
 
 export default function TodoList() {
   const [mounted, setMounted] = useState(false);
@@ -59,14 +76,16 @@ export default function TodoList() {
   const addTodo = (e: React.FormEvent) => {
     e.preventDefault();
     if (newTodo.trim()) {
-      setTodos([
+      const newTodos = [
         ...todos,
         {
           id: Date.now().toString(),
           text: newTodo.trim(),
           completed: false,
+          order: todos.length,
         },
-      ]);
+      ];
+      setTodos(newTodos);
       setNewTodo("");
     }
   };
@@ -93,48 +112,138 @@ export default function TodoList() {
     setTodos(todos.filter((todo) => todo.id !== id));
   };
 
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+
+    const { source, destination } = result;
+    const allTodos = [...todos];
+    const sourceList = result.source.droppableId === "completed" 
+      ? allTodos.filter(t => t.completed) 
+      : allTodos.filter(t => !t.completed);
+    
+    const [movedItem] = sourceList.splice(source.index, 1);
+    
+    if (result.source.droppableId === result.destination.droppableId) {
+      sourceList.splice(destination.index, 0, movedItem);
+      const updatedTodos = allTodos.map(todo => {
+        if (result.source.droppableId === "completed" ? todo.completed : !todo.completed) {
+          const index = sourceList.findIndex(t => t.id === todo.id);
+          return { ...todo, order: index };
+        }
+        return todo;
+      });
+      setTodos(updatedTodos);
+    }
+  };
+
+  const activeTodos = todos.filter(todo => !todo.completed).sort((a, b) => (a.order || 0) - (b.order || 0));
+  const completedTodos = todos.filter(todo => todo.completed).sort((a, b) => (a.order || 0) - (b.order || 0));
+
+  if (!mounted) {
+    return (
+      <div className="w-[386px] flex flex-col gap-8">
+        <div className="flex justify-center">
+          <h1 className="text-4xl font-bold tracking-[-0.02em]">Personal</h1>
+        </div>
+        <div className="flex flex-col gap-8">
+          <div className="flex flex-col gap-4" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-[386px] flex flex-col gap-8">
       <div className="flex justify-center">
         <h1 className="text-4xl font-bold tracking-[-0.02em]">Personal</h1>
       </div>
 
-      <div className="flex flex-col gap-8">
-        <div className="flex flex-col gap-4">
-          {todos.filter(todo => !todo.completed).map((todo) => (
-            <Todo
-              key={todo.id}
-              id={todo.id}
-              text={todo.text}
-              completed={todo.completed}
-              onToggle={() => toggleTodo(todo.id)}
-              onEdit={(newText) => editTodo(todo.id, newText)}
-              onDelete={() => deleteTodo(todo.id)}
-            />
-          ))}
-        </div>
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="flex flex-col gap-8">
+          <StrictModeDroppable droppableId="active">
+            {(provided) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className="flex flex-col gap-4"
+              >
+                {activeTodos.map((todo, index) => (
+                  <Draggable key={todo.id} draggableId={todo.id} index={index}>
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        style={{
+                          ...provided.draggableProps.style,
+                          opacity: snapshot.isDragging ? 0.8 : 1
+                        }}
+                      >
+                        <div {...provided.dragHandleProps}>
+                          <Todo
+                            id={todo.id}
+                            text={todo.text}
+                            completed={todo.completed}
+                            onToggle={() => toggleTodo(todo.id)}
+                            onEdit={(newText) => editTodo(todo.id, newText)}
+                            onDelete={() => deleteTodo(todo.id)}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </div>
+            )}
+          </StrictModeDroppable>
 
-        {todos.some(todo => todo.completed) && (
-          <div className="flex flex-col gap-4">
-            <div className="flex justify-start">
-              <h2 className="text-xs font-semibold tracking-[0.04em] text-[#D1A28B] uppercase">
-                COMPLETED
-              </h2>
-            </div>
-            {todos.filter(todo => todo.completed).map((todo) => (
-              <Todo
-                key={todo.id}
-                id={todo.id}
-                text={todo.text}
-                completed={todo.completed}
-                onToggle={() => toggleTodo(todo.id)}
-                onEdit={(newText) => editTodo(todo.id, newText)}
-                onDelete={() => deleteTodo(todo.id)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+          {completedTodos.length > 0 && (
+            <>
+              <div className="flex justify-start">
+                <h2 className="text-xs font-semibold tracking-[0.04em] text-[#D1A28B] uppercase">
+                  COMPLETED
+                </h2>
+              </div>
+              <StrictModeDroppable droppableId="completed">
+                {(provided) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    className="flex flex-col gap-4"
+                  >
+                    {completedTodos.map((todo, index) => (
+                      <Draggable key={todo.id} draggableId={todo.id} index={index}>
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            style={{
+                              ...provided.draggableProps.style,
+                              opacity: snapshot.isDragging ? 0.8 : 1
+                            }}
+                          >
+                            <div {...provided.dragHandleProps}>
+                              <Todo
+                                id={todo.id}
+                                text={todo.text}
+                                completed={todo.completed}
+                                onToggle={() => toggleTodo(todo.id)}
+                                onEdit={(newText) => editTodo(todo.id, newText)}
+                                onDelete={() => deleteTodo(todo.id)}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </StrictModeDroppable>
+            </>
+          )}
+        </div>
+      </DragDropContext>
 
       <form onSubmit={addTodo} className="flex gap-3">
         <input

@@ -116,7 +116,7 @@ export default function Todo({ id, text, completed, onToggle, onDelete, onEdit }
           </svg>
         </button>
 
-        <div className="grid grid-cols-3">
+        <div className="grid grid-cols-3 cursor-move">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="w-1 h-1 bg-[#D9D9D9] rounded-full" />
           ))}
