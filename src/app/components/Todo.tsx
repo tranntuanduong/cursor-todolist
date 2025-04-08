@@ -60,15 +60,15 @@ export default function Todo({ id, text, completed, onToggle, onDelete, onEdit }
   }
 
   return (
-    <div ref={todoRef} className="flex justify-between items-center w-full bg-[#F3EFEE] rounded-xl p-4 group hover:bg-[#EBE7E6] transition-colors">
+    <div ref={todoRef} className={`flex justify-between items-center w-full ${completed ? 'bg-[#F7F7F7] border border-black/10' : 'bg-[#F3EFEE] hover:bg-[#EBE7E6]'} rounded-xl p-4 group transition-colors`}>
       <div className="flex items-center gap-4 flex-1 min-w-0">
         <button 
           onClick={onToggle}
-          className={`w-6 h-6 rounded-[6px] flex items-center justify-center border-2 border-[#9F9F9F] transition-colors ${completed ? 'bg-white' : 'bg-white hover:bg-[#F9F5F4]'}`}
+          className={`w-6 h-6 rounded-[6px] flex items-center justify-center border-2 transition-colors ${completed ? 'bg-[#393433] border-[#393433]' : 'bg-white border-[#9F9F9F] hover:bg-[#F9F5F4]'}`}
         >
           {completed && (
             <svg width="14" height="10" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M1 5L5 9L13 1" stroke="#9F9F9F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M1 5L5 9L13 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           )}
         </button>
@@ -83,7 +83,7 @@ export default function Todo({ id, text, completed, onToggle, onDelete, onEdit }
             className="flex-1 min-w-0 bg-white rounded-md px-2 py-1 text-[17px] font-medium text-[#121212] outline-none"
           />
         ) : (
-          <span className={`text-[17px] font-medium text-[#121212] truncate ${completed ? 'line-through' : ''}`}>
+          <span className={`text-[17px] font-medium truncate ${completed ? 'text-[#121212] opacity-40 line-through' : 'text-[#121212]'}`}>
             {text}
           </span>
         )}
@@ -92,7 +92,7 @@ export default function Todo({ id, text, completed, onToggle, onDelete, onEdit }
       <div className="flex items-center gap-3">
         <button
           onClick={handleEdit}
-          className="opacity-0 group-hover:opacity-100 transition-opacity text-[#9F9F9F] hover:text-[#121212]"
+          className={`${completed ? 'hidden' : 'opacity-0 group-hover:opacity-100'} transition-opacity text-[#9F9F9F] hover:text-[#121212]`}
         >
           {isEditing ? (
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -108,7 +108,7 @@ export default function Todo({ id, text, completed, onToggle, onDelete, onEdit }
         
         <button
           onClick={onDelete}
-          className="opacity-0 group-hover:opacity-100 transition-opacity text-[#9F9F9F] hover:text-red-500"
+          className={`${completed ? 'hidden' : 'opacity-0 group-hover:opacity-100'} transition-opacity text-[#9F9F9F] hover:text-red-500`}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

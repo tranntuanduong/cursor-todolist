@@ -100,18 +100,41 @@ export default function TodoList() {
         <h1 className="text-4xl font-bold tracking-[-0.02em]">Personal</h1>
       </div>
 
-      <div className="flex flex-col gap-4">
-        {todos.map((todo) => (
-          <Todo
-            key={todo.id}
-            id={todo.id}
-            text={todo.text}
-            completed={todo.completed}
-            onToggle={() => toggleTodo(todo.id)}
-            onEdit={(newText) => editTodo(todo.id, newText)}
-            onDelete={() => deleteTodo(todo.id)}
-          />
-        ))}
+      <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-4">
+          {todos.filter(todo => !todo.completed).map((todo) => (
+            <Todo
+              key={todo.id}
+              id={todo.id}
+              text={todo.text}
+              completed={todo.completed}
+              onToggle={() => toggleTodo(todo.id)}
+              onEdit={(newText) => editTodo(todo.id, newText)}
+              onDelete={() => deleteTodo(todo.id)}
+            />
+          ))}
+        </div>
+
+        {todos.some(todo => todo.completed) && (
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-center">
+              <h2 className="text-xs font-semibold tracking-[0.04em] text-[#D1A28B] uppercase">
+                COMPLETED
+              </h2>
+            </div>
+            {todos.filter(todo => todo.completed).map((todo) => (
+              <Todo
+                key={todo.id}
+                id={todo.id}
+                text={todo.text}
+                completed={todo.completed}
+                onToggle={() => toggleTodo(todo.id)}
+                onEdit={(newText) => editTodo(todo.id, newText)}
+                onDelete={() => deleteTodo(todo.id)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <form onSubmit={addTodo} className="flex gap-3">
