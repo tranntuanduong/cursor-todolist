@@ -11,51 +11,50 @@ interface TodoItem {
 
 const STORAGE_KEY = "todos-v1";
 
-const defaultTodos: TodoItem[] = [
-  { id: "1", text: "Drink 8 glasses of water", completed: false },
-  { id: "2", text: "Meditate for 10 minutes", completed: false },
-  { id: "3", text: "Read a chapter of a book", completed: false },
-  { id: "4", text: "Go for a 30-minute walk", completed: false },
-  { id: "5", text: "Write in a gratitude journal", completed: false },
-  { id: "6", text: "Plan meals for the day", completed: false },
-  { id: "7", text: "Practice deep breathing exercises", completed: false },
-  { id: "8", text: "Stretch for 15 minutes", completed: false },
-  { id: "9", text: "Limit screen time before bed", completed: false },
-  { id: "10", text: "Review daily goals before sleeping", completed: false },
-];
-
 export default function TodoList() {
+  const [mounted, setMounted] = useState(false);
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [newTodo, setNewTodo] = useState("");
 
-  // Load todos from localStorage on mount
   useEffect(() => {
-    const storedTodos = localStorage.getItem(STORAGE_KEY);
-    if (storedTodos) {
-      setTodos(JSON.parse(storedTodos));
-    } else {
-      setTodos(defaultTodos);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultTodos));
+    setMounted(true);
+    try {
+      const storedTodos = localStorage.getItem(STORAGE_KEY);
+      if (storedTodos) {
+        setTodos(JSON.parse(storedTodos));
+      }
+    } catch (error) {
+      console.error("Error loading todos from localStorage:", error);
     }
+  }, []);
 
-    // Save todos when user leaves the site
-    const handleBeforeUnload = () => {
+  useEffect(() => {
+    if (!mounted) return;
+
+    try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
-    };
+    } catch (error) {
+      console.error("Error saving todos to localStorage:", error);
+    }
+  }, [todos, mounted]);
+
+  const handleBeforeUnload = () => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+    } catch (error) {
+      console.error("Error saving todos to localStorage:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (!mounted) return;
 
     window.addEventListener("beforeunload", handleBeforeUnload);
-
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
-      // Save one last time when component unmounts
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+      handleBeforeUnload();
     };
-  }, []); // Empty dependency array for mount/unmount only
-
-  // Save todos to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
-  }, [todos]);
+  }, [mounted, todos]);
 
   const addTodo = (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,7 +116,7 @@ export default function TodoList() {
 
         {todos.some(todo => todo.completed) && (
           <div className="flex flex-col gap-4">
-            <div className="flex justify-center">
+            <div className="flex justify-start">
               <h2 className="text-xs font-semibold tracking-[0.04em] text-[#D1A28B] uppercase">
                 COMPLETED
               </h2>

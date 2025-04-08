@@ -116,8 +116,8 @@ export default function Todo({ id, text, completed, onToggle, onDelete, onEdit }
           </svg>
         </button>
 
-        <div className="flex gap-1">
-          {Array.from({ length: 7 }).map((_, i) => (
+        <div className="grid grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="w-1 h-1 bg-[#D9D9D9] rounded-full" />
           ))}
         </div>
