@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 
 interface TodoProps {
   id: string
@@ -14,22 +14,53 @@ interface TodoProps {
 export default function Todo({ id, text, completed, onToggle, onDelete, onEdit }: TodoProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editText, setEditText] = useState(text)
+  const todoRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isEditing && 
+          todoRef.current && 
+          !todoRef.current.contains(event.target as Node)) {
+        if (editText.trim()) {
+          onEdit(editText)
+        } else {
+          setEditText(text)
+        }
+        setIsEditing(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isEditing, editText, onEdit, text])
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus()
+    }
+  }, [isEditing])
 
   const handleEdit = () => {
-    if (isEditing) {
+    if (isEditing && editText.trim()) {
       onEdit(editText)
     }
     setIsEditing(!isEditing)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && editText.trim()) {
       handleEdit()
+    } else if (e.key === 'Escape') {
+      setEditText(text)
+      setIsEditing(false)
     }
   }
 
   return (
-    <div className="flex justify-between items-center w-full bg-[#F3EFEE] rounded-xl p-4 group hover:bg-[#EBE7E6] transition-colors">
+    <div ref={todoRef} className="flex justify-between items-center w-full bg-[#F3EFEE] rounded-xl p-4 group hover:bg-[#EBE7E6] transition-colors">
       <div className="flex items-center gap-4 flex-1 min-w-0">
         <button 
           onClick={onToggle}
@@ -44,12 +75,12 @@ export default function Todo({ id, text, completed, onToggle, onDelete, onEdit }
         
         {isEditing ? (
           <input
+            ref={inputRef}
             type="text"
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
             onKeyDown={handleKeyDown}
             className="flex-1 min-w-0 bg-white rounded-md px-2 py-1 text-[17px] font-medium text-[#121212] outline-none"
-            autoFocus
           />
         ) : (
           <span className={`text-[17px] font-medium text-[#121212] truncate ${completed ? 'line-through' : ''}`}>
