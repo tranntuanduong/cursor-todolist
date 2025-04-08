@@ -9,8 +9,11 @@ import {
   DroppableProps,
   DroppableProvided,
 } from "react-beautiful-dnd";
+import { twMerge } from 'tailwind-merge';
+import clsx from 'clsx';
 import Todo from "./Todo";
 import Calendar from './Calendar';
+import Modal from './Modal';
 
 interface TodoItem {
   id: string;
@@ -24,6 +27,7 @@ interface TodoItem {
 interface Topic {
   id: string;
   title: string;
+  color: string;
 }
 
 const STORAGE_KEY = "todos-v1";
@@ -32,7 +36,19 @@ const TOPICS_STORAGE_KEY = "topics-v1";
 const DEFAULT_TOPIC: Topic = {
   id: "uncategorized",
   title: "Uncategorized",
+  color: "#F9F5F4"
 };
+
+const TOPIC_COLORS = [
+  '#E6D9CB',
+  '#D1A28B',
+  '#9F9F9F',
+  '#393433',
+  '#FFB6B6',
+  '#B6FFB6',
+  '#B6B6FF',
+  '#FFE4B6'
+];
 
 function StrictModeDroppable({ children, ...props }: DroppableProps) {
   const [enabled, setEnabled] = useState(false);
@@ -59,9 +75,14 @@ export default function TodoList() {
     DEFAULT_TOPIC.id
   );
   const [isAddingTopic, setIsAddingTopic] = useState(false);
+  const [isAddingTodo, setIsAddingTodo] = useState(false);
   const [newTopic, setNewTopic] = useState("");
+  const [newTopicColor, setNewTopicColor] = useState(TOPIC_COLORS[0]);
   const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
   const [editingTopicTitle, setEditingTopicTitle] = useState<string>("");
+  const [editingTopicColor, setEditingTopicColor] = useState<string>("");
+  const [editingTodoId, setEditingTodoId] = useState<string | null>(null);
+  const [editingTodoText, setEditingTodoText] = useState("");
 
   const dates = Array.from({ length: 6 }, (_, i) => {
     const date = new Date();
@@ -168,11 +189,13 @@ export default function TodoList() {
       const newTopicItem: Topic = {
         id: Date.now().toString(),
         title,
+        color: newTopicColor
       };
 
       setTopics((prev) => [...prev, newTopicItem]);
       setSelectedTopicId(newTopicItem.id);
       setNewTopic("");
+      setNewTopicColor(TOPIC_COLORS[0]);
       setIsAddingTopic(false);
     }
   };
@@ -374,18 +397,22 @@ export default function TodoList() {
   const handleStartEditTopic = (topic: Topic) => {
     setEditingTopicId(topic.id);
     setEditingTopicTitle(topic.title);
+    setEditingTopicColor(topic.color);
   };
 
-  const handleEditTopic = (topicId: string, newTitle: string) => {
+  const handleEditTopic = (topicId: string, newTitle: string, newColor: string) => {
     if (topicId === DEFAULT_TOPIC.id) return;
     if (newTitle.trim()) {
       setTopics((prev) =>
         prev.map((topic) =>
-          topic.id === topicId ? { ...topic, title: newTitle.trim() } : topic
+          topic.id === topicId 
+            ? { ...topic, title: newTitle.trim(), color: newColor } 
+            : topic
         )
       );
       setEditingTopicId(null);
       setEditingTopicTitle("");
+      setEditingTopicColor("");
     }
   };
 
@@ -427,14 +454,20 @@ export default function TodoList() {
     return [...activeTopics, ...topicsWithTodos];
   };
 
+  const handleTodoDateUpdate = (todoId: string, newDate: string) => {
+    setTodos(todos.map(todo => 
+      todo.id === todoId ? { ...todo, date: newDate } : todo
+    ));
+  };
+
   if (!mounted) {
     return (
-      <div className="w-[386px] flex flex-col gap-8">
+      <div className="w-[386px] flex flex-col gap-4">
         <div className="flex justify-center">
           <h1 className="text-4xl font-bold tracking-[-0.02em]">Personal</h1>
         </div>
-        <div className="flex flex-col gap-8">
-          <div className="flex flex-col gap-4" />
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2" />
         </div>
       </div>
     );
@@ -444,8 +477,8 @@ export default function TodoList() {
 
   return (
     <div className="flex gap-8">
-      <div className="w-[386px] flex flex-col gap-8">
-        <div className="flex flex-col gap-8">
+      <div className="w-[356px] flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           <h1 className="text-4xl font-bold tracking-[-0.02em] text-center">
             {formatDateTitle(selectedDate)}
           </h1>
@@ -457,11 +490,12 @@ export default function TodoList() {
                 <button
                   key={index}
                   onClick={() => setSelectedDate(date)}
-                  className={`flex flex-col items-center justify-center gap-2 min-w-[60px] py-3 px-1.5 rounded-lg transition-colors ${
+                  className={twMerge(
+                    'flex flex-col items-center justify-center gap-2 min-w-[60px] py-3 px-1.5 rounded-lg transition-colors',
                     selectedDate.toDateString() === date.toDateString()
                       ? "bg-[#E6D9CB] text-[rgba(18,18,18,0.8)]"
                       : "bg-[#F3EFEE] border border-black/10 text-[rgba(18,18,18,0.5)]"
-                  }`}
+                  )}
                 >
                   <span className="text-xs font-semibold tracking-[0.04em]">
                     {day}
@@ -480,136 +514,56 @@ export default function TodoList() {
               return (
                 <div
                   key={topic.id}
-                  className={`relative group px-3 py-1.5 rounded-lg cursor-pointer transition-colors ${
-                    isSelected
-                      ? "bg-[#E6D9CB] text-[rgba(18,18,18,0.8)]"
-                      : "bg-[#F3EFEE] text-[#D1A28B]"
-                  }`}
+                  className={twMerge(
+                    'relative group px-3 py-1.5 rounded-lg cursor-pointer transition-colors',
+                    !isSelected && "hover:bg-[#EBE7E6]"
+                  )}
                   onClick={() => setSelectedTopicId(topic.id)}
+                  style={{ 
+                    backgroundColor: topic.color,
+                    color: topic.id === DEFAULT_TOPIC.id ? '#9F9F9F' : '#121212'
+                  }}
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-semibold tracking-[0.04em] uppercase">
                       {topic.title}
                     </span>
-                    {isSelected && topic.id !== DEFAULT_TOPIC.id && (
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStartEditTopic(topic);
-                          }}
-                          className="p-1 text-[#D1A28B] hover:text-[#121212] transition-colors"
+                    {topic.id !== DEFAULT_TOPIC.id && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStartEditTopic(topic);
+                        }}
+                        className={twMerge(
+                          'p-1 hover:bg-black/5 rounded transition-all',
+                          isSelected ? 'opacity-100' : 'opacity-0'
+                        )}
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
                         >
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M18.5 2.50001C18.8978 2.10219 19.4374 1.87869 20 1.87869C20.5626 1.87869 21.1022 2.10219 21.5 2.50001C21.8978 2.89784 22.1213 3.4374 22.1213 4.00001C22.1213 4.56262 21.8978 5.10219 21.5 5.50001L12 15L8 16L9 12L18.5 2.50001Z"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (
-                              window.confirm(
-                                "Are you sure you want to delete this topic? All tasks will be moved to Uncategorized."
-                              )
-                            ) {
-                              handleDeleteTopic(topic.id);
-                            }
-                          }}
-                          className="p-1 text-[#D1A28B] hover:text-red-500 transition-colors"
-                        >
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M3 6H5H21"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </button>
-                      </div>
+                          <path
+                            d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M18.5 2.50001C18.8978 2.10219 19.4374 1.87869 20 1.87869C20.5626 1.87869 21.1022 2.10219 21.5 2.50001C21.8978 2.89784 22.1213 3.4374 22.1213 4.00001C22.1213 4.56262 21.8978 5.10219 21.5 5.50001L12 15L8 16L9 12L18.5 2.50001Z"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
                     )}
                   </div>
-                  {editingTopicId === topic.id && (
-                    <div className="absolute left-0 top-0 w-full bg-[#E6D9CB] rounded-lg p-1 z-10">
-                      <form
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          handleEditTopic(topic.id, editingTopicTitle);
-                        }}
-                        className="flex gap-1 w-full"
-                      >
-                        <input
-                          type="text"
-                          value={editingTopicTitle}
-                          onChange={(e) => setEditingTopicTitle(e.target.value)}
-                          className="flex-1 min-w-0 px-2 py-1 text-xs font-semibold tracking-[0.04em] uppercase bg-white rounded outline-none"
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === "Escape") {
-                              setEditingTopicId(null);
-                              setEditingTopicTitle("");
-                            }
-                          }}
-                        />
-                        <div className="flex gap-1 shrink-0">
-                          <button
-                            type="submit"
-                            className="px-2 py-1 bg-[#D1A28B] text-white text-xs font-semibold tracking-[0.04em] uppercase rounded whitespace-nowrap"
-                          >
-                            <svg
-                              width="14"
-                              height="14"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M5 12L10 17L20 7"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </button>
-                          
-                        </div>
-                      </form>
-                    </div>
-                  )}
                 </div>
               );
             })}
@@ -621,42 +575,14 @@ export default function TodoList() {
             </button>
           </div>
 
-          {isAddingTopic && (
-            <form onSubmit={handleAddTopic} className="flex gap-2 mt-2">
-              <input
-                type="text"
-                value={newTopic}
-                onChange={(e) => setNewTopic(e.target.value)}
-                placeholder="New topic name..."
-                className="flex-1 px-3 py-1.5 bg-[#F3EFEE] rounded-lg text-xs font-semibold tracking-[0.04em] uppercase text-[#D1A28B] outline-none"
-                autoFocus
-              />
-              <button
-                type="submit"
-                className="px-3 py-1.5 bg-[#E6D9CB] rounded-lg text-xs font-semibold tracking-[0.04em] uppercase text-[rgba(18,18,18,0.8)]"
-              >
-                Add
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setNewTopic("");
-                  setIsAddingTopic(false);
-                }}
-                className="px-3 py-1.5 bg-[#F3EFEE] rounded-lg text-xs font-semibold tracking-[0.04em] uppercase text-[#D1A28B]"
-              >
-                Cancel
-              </button>
-            </form>
-          )}
         </div>
 
         <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="flex flex-col gap-8">
+          <div className="flex flex-col gap-4">
             {Object.entries(activeGroupedTodos)
               .filter(([topicId, todos]) => todos.length > 0)
               .map(([topicId, todos]) => (
-                <div key={topicId} className="flex flex-col gap-4">
+                <div key={topicId} className="flex flex-col gap-2">
                   <div className="flex justify-start">
                     <h2 className="text-xs font-semibold tracking-[0.04em] text-[#D1A28B] uppercase">
                       {topics.find((t) => t.id === topicId)?.title ||
@@ -668,9 +594,10 @@ export default function TodoList() {
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className={`flex flex-col gap-4 transition-all duration-200 ${
-                          snapshot.isDraggingOver ? "pb-[0px]" : ""
-                        }`}
+                        className={twMerge(
+                          'flex flex-col gap-2 transition-all duration-200',
+                          snapshot.isDraggingOver && "pb-[0px]"
+                        )}
                       >
                         {todos.map((todo, index) => (
                           <Draggable
@@ -720,9 +647,10 @@ export default function TodoList() {
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`flex flex-col gap-4 transition-all duration-200 ${
-                        snapshot.isDraggingOver ? "pb-[100px]" : ""
-                      }`}
+                      className={twMerge(
+                        'flex flex-col gap-2 transition-all duration-200',
+                        snapshot.isDraggingOver && "pb-[100px]"
+                      )}
                     >
                       {completedTodos.map((todo, index) => (
                         <Draggable
@@ -771,9 +699,15 @@ export default function TodoList() {
           />
           <button
             type="submit"
-            className="px-[21px] py-[14px] bg-[#393433] rounded-xl text-[18px] font-medium text-white hover:bg-[#2a2625] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={!newTodo.trim()}
+            className="flex items-center gap-2 px-[21px] py-[14px] bg-[#393433] rounded-xl text-[18px] font-medium text-white hover:bg-[#2a2625] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
+            <div 
+              className="w-[8px] h-[8px] rounded-[1px]" 
+              style={{ 
+                backgroundColor: topics.find(t => t.id === selectedTopicId)?.color || DEFAULT_TOPIC.color 
+              }} 
+            />
             Add
           </button>
         </form>
@@ -784,7 +718,175 @@ export default function TodoList() {
         selectedDate={selectedDate}
         onDateSelect={setSelectedDate}
         topics={topics}
+        onTodoUpdate={handleTodoDateUpdate}
       />
+
+      {/* Add Topic Modal */}
+      <Modal
+        isOpen={editingTopicId !== null}
+        onClose={() => {
+          setEditingTopicId(null);
+          setEditingTopicTitle("");
+          setEditingTopicColor("");
+        }}
+        title="Edit Topic"
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (editingTopicId) {
+              handleEditTopic(editingTopicId, editingTopicTitle, editingTopicColor);
+            }
+          }}
+          className="flex flex-col gap-6"
+        >
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-[#121212]">
+              Label
+            </label>
+            <input
+              type="text"
+              value={editingTopicTitle}
+              onChange={(e) => setEditingTopicTitle(e.target.value)}
+              className="px-3 py-2 bg-[#F3EFEE] rounded-lg text-sm font-medium text-[#121212] outline-none focus:ring-2 focus:ring-[#393433] focus:ring-opacity-50 transition-shadow"
+              placeholder="Topic name"
+              autoFocus
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-[#121212]">
+              Color
+            </label>
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap gap-2">
+                {TOPIC_COLORS.map(color => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => setEditingTopicColor(color)}
+                    className={twMerge(
+                      'w-8 h-8 rounded-lg transition-all',
+                      editingTopicColor === color && 'ring-2 ring-offset-2 ring-[#393433]'
+                    )}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={editingTopicColor}
+                  onChange={(e) => setEditingTopicColor(e.target.value)}
+                  className="w-8 h-8 rounded-lg cursor-pointer"
+                />
+                <span className="text-sm text-[#121212]">Custom color</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 pt-2">
+            <button
+              type="submit"
+              className="px-4 py-2 bg-[#393433] rounded-lg text-sm font-medium text-white hover:bg-[#2a2625] transition-colors"
+            >
+              Save Changes
+            </button>
+            
+            {editingTopicId && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "Are you sure you want to delete this topic? All tasks will be moved to Uncategorized."
+                    )
+                  ) {
+                    handleDeleteTopic(editingTopicId);
+                    setEditingTopicId(null);
+                  }
+                }}
+                className="px-4 py-2 bg-red-50 rounded-lg text-sm font-medium text-red-600 hover:bg-red-100 transition-colors"
+              >
+                Delete Topic
+              </button>
+            )}
+          </div>
+        </form>
+      </Modal>
+
+      {/* New Add Topic Modal */}
+      <Modal
+        isOpen={isAddingTopic}
+        onClose={() => {
+          setIsAddingTopic(false);
+          setNewTopic("");
+          setNewTopicColor(TOPIC_COLORS[0]);
+        }}
+        title="Add Topic"
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleAddTopic(e);
+          }}
+          className="flex flex-col gap-6"
+        >
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-[#121212]">
+              Label
+            </label>
+            <input
+              type="text"
+              value={newTopic}
+              onChange={(e) => setNewTopic(e.target.value)}
+              className="px-3 py-2 bg-[#F3EFEE] rounded-lg text-sm font-medium text-[#121212] outline-none focus:ring-2 focus:ring-[#393433] focus:ring-opacity-50 transition-shadow"
+              placeholder="Topic name"
+              autoFocus
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-[#121212]">
+              Color
+            </label>
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap gap-2">
+                {TOPIC_COLORS.map(color => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => setNewTopicColor(color)}
+                    className={twMerge(
+                      'w-8 h-8 rounded-lg transition-all',
+                      newTopicColor === color && 'ring-2 ring-offset-2 ring-[#393433]'
+                    )}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={newTopicColor}
+                  onChange={(e) => setNewTopicColor(e.target.value)}
+                  className="w-8 h-8 rounded-lg cursor-pointer"
+                />
+                <span className="text-sm text-[#121212]">Custom color</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 pt-2">
+            <button
+              type="submit"
+              className="px-4 py-2 bg-[#393433] rounded-lg text-sm font-medium text-white hover:bg-[#2a2625] transition-colors"
+            >
+              Add Topic
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

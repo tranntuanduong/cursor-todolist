@@ -60,7 +60,7 @@ export default function Todo({ id, text, completed, onToggle, onDelete, onEdit }
   }
 
   return (
-    <div ref={todoRef} className={`flex flex-col w-full ${completed ? 'bg-[#F7F7F7] border border-black/10' : 'bg-[#F3EFEE] hover:bg-[#EBE7E6]'} rounded-xl p-4 group transition-colors`}>
+    <div ref={todoRef} className={`flex flex-col w-full ${completed ? 'bg-[#F7F7F7] border border-black/10' : 'bg-[#F3EFEE] hover:bg-[#EBE7E6]'} rounded-md p-2 group transition-colors`}>
       <div className="flex justify-between items-center w-full">
         <div className="flex items-center gap-4 flex-1 min-w-0">
           <button 
